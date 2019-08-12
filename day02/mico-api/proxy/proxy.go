@@ -2,7 +2,7 @@
  * @Description: In User Settings Edit
  * @Author: your name
  * @Date: 2019-08-11 16:22:46
- * @LastEditTime: 2019-08-11 16:33:35
+ * @LastEditTime: 2019-08-12 09:00:33
  * @LastEditors: Please set LastEditors
  */
 package main
@@ -10,9 +10,11 @@ package main
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/micro/go-micro/errors"
+	"github.com/micro/go-web"
 )
 
 func exampleCall(w http.ResponseWriter, r *http.Request) {
@@ -71,6 +73,19 @@ func exampleFooBar(w http.ResponseWriter, r *http.Request) {
 
 	w.Write(b)
 }
-func main() {
 
+func main() {
+	service := web.NewService(
+		web.Name("go.micro.api.example"),
+	)
+	service.HandleFunc("/example/call", exampleCall)
+	service.HandleFunc("/example/foo/bar", exampleFooBar)
+
+	if err := service.Init(); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := service.Run(); err != nil {
+		log.Fatal(err)
+	}
 }
