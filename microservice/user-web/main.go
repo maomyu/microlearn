@@ -2,7 +2,7 @@
  * @Description: In User Settings Edit
  * @Author: your name
  * @Date: 2019-08-17 10:50:36
- * @LastEditTime: 2019-08-17 11:01:06
+ * @LastEditTime: 2019-08-18 12:39:01
  * @LastEditors: Please set LastEditors
  */
 package main
@@ -15,8 +15,8 @@ import (
 	"github.com/micro/go-micro/registry/consul"
 	"github.com/micro/go-micro/util/log"
 	"github.com/micro/go-micro/web"
-	"github.com/yuwe1/micolearn/microservice/user-web/basic"
-	"github.com/yuwe1/micolearn/microservice/user-web/basic/config"
+	"github.com/yuwe1/micolearn/microservice/basic"
+	"github.com/yuwe1/micolearn/microservice/basic/config"
 	"github.com/yuwe1/micolearn/microservice/user-web/handler"
 )
 
@@ -46,6 +46,8 @@ func main() {
 
 	// 注册登录接口
 	service.HandleFunc("/user/login", handler.Login)
+	// 注册退出接口
+	service.HandleFunc("/user/logout", handler.Logout)
 
 	// 运行服务
 	if err := service.Run(); err != nil {

@@ -2,8 +2,8 @@
  * @Description: In User Settings Edit
  * @Author: your name
  * @Date: 2019-08-17 10:36:00
- * @LastEditTime: 2019-08-17 10:36:00
- * @LastEditors: your name
+ * @LastEditTime: 2019-08-18 10:12:02
+ * @LastEditors: Please set LastEditors
  */
 package handler
 
@@ -15,11 +15,13 @@ import (
 
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/util/log"
+	auth "github.com/yuwe1/micolearn/microservice/auth/proto/auth"
 	us "github.com/yuwe1/micolearn/microservice/user-srv/proto/user"
 )
 
 var (
 	serviceClient us.UserService
+	authClient    auth.Service
 )
 
 // Error错误结构体
@@ -30,6 +32,7 @@ type Error struct {
 
 func Init() {
 	serviceClient = us.NewUserService("mu.micro.book.srv.user", client.DefaultClient)
+	authClient = auth.NewService("mu.micro.book.srv.auth", client.DefaultClient)
 }
 
 // 登录的入口
@@ -59,6 +62,25 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		// 干掉密码返回
 		rsp.User.Pwd = ""
 		response["data"] = rsp.User
+		log.Logf("[Login] 密码校验完成，生成token...")
+		// 生成token
+		rsp2, err := authClient.MakeAccessToken(context.TODO(), &auth.Request{
+			UserId:   uint64(rsp.User.Id),
+			UserName: rsp.User.Name,
+		})
+		if err != nil {
+			log.Logf("[Login] 创建token失败，err：%s", err)
+			http.Error(w, err.Error(), 500)
+			return
+		}
+		log.Logf("[Login] token %s", rsp2.Token)
+		response["token"] = rsp2.Token
+		// 同时将token写到cookies中
+		w.Header().Add("set-cookie", "application/json; charset=utf-8")
+		// 过期30分钟
+		expire := time.Now().Add(30 * time.Minute)
+		cookie := http.Cookie{Name: "remember-me-token", Value: rsp2.Token, Path: "/", Expires: expire, MaxAge: 90000}
+		http.SetCookie(w, &cookie)
 
 	} else {
 		response["success"] = false
@@ -68,6 +90,50 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
+
+	// 返回JSON结构
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+}
+
+// Logout 退出登录
+func Logout(w http.ResponseWriter, r *http.Request) {
+	// 只接受POST请求
+	if r.Method != "POST" {
+		log.Logf("非法请求")
+		http.Error(w, "非法请求", 400)
+		return
+	}
+
+	tokenCookie, err := r.Cookie("remember-me-token")
+	if err != nil {
+		log.Logf("token获取失败")
+		http.Error(w, "非法请求", 400)
+		return
+	}
+
+	// 删除token
+	_, err = authClient.DelUserAccessToken(context.TODO(), &auth.Request{
+		Token: tokenCookie.Value,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	// 清除cookie
+	cookie := http.Cookie{Name: "remember-me-token", Value: "", Path: "/", Expires: time.Now().Add(0 * time.Second), MaxAge: 0}
+	http.SetCookie(w, &cookie)
+
+	w.Header().Add("Content-Type", "application/json; charset=utf-8")
+
+	// 返回结果
+	response := map[string]interface{}{
+		"ref":     time.Now().UnixNano(),
+		"success": true,
+	}
 
 	// 返回JSON结构
 	if err := json.NewEncoder(w).Encode(response); err != nil {

@@ -2,14 +2,14 @@
  * @Description: In User Settings Edit
  * @Author: your name
  * @Date: 2019-08-17 08:49:17
- * @LastEditTime: 2019-08-17 09:15:42
+ * @LastEditTime: 2019-08-18 12:32:59
  * @LastEditors: Please set LastEditors
  */
 package user
 
 import (
 	"github.com/micro/go-micro/util/log"
-	"github.com/yuwe1/micolearn/microservice/user-srv/basic/db"
+	"github.com/yuwe1/micolearn/microservice/basic/db"
 	proto "github.com/yuwe1/micolearn/microservice/user-srv/proto/user"
 )
 
