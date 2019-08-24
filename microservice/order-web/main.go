@@ -1,8 +1,8 @@
 /*
  * @Description: In User Settings Edit
  * @Author: your name
- * @Date: 2019-08-17 09:39:23
- * @LastEditTime: 2019-08-24 14:34:46
+ * @Date: 2019-08-19 16:50:12
+ * @LastEditTime: 2019-08-24 14:37:52
  * @LastEditors: Please set LastEditors
  */
 package main
@@ -10,29 +10,27 @@ package main
 import (
 	"fmt"
 
+	"net/http"
+
 	"github.com/micro/cli"
-	"github.com/micro/go-micro"
 	"github.com/micro/go-micro/registry"
 	"github.com/micro/go-micro/registry/consul"
 	"github.com/micro/go-micro/util/log"
+	"github.com/micro/go-micro/web"
 	"github.com/yuwe1/micolearn/microservice/basic"
 	"github.com/yuwe1/micolearn/microservice/basic/common"
 	config "github.com/yuwe1/micolearn/microservice/basic/gconfig"
 	"github.com/micro/go-plugins/config/source/grpc"
-	"github.com/yuwe1/micolearn/microservice/user-srv/handler"
-	"github.com/yuwe1/micolearn/microservice/user-srv/model"
-	s "github.com/yuwe1/micolearn/microservice/user-srv/proto/user"
-	_ "github.com/go-sql-driver/mysql"
-	
+	"github.com/yuwe1/micolearn/microservice/order-web/handler"
 )
 var (
-	appName = "user_srv"
-	cfg     = &userCfg{}
+	appName = "orders_web"
+	cfg     = &appCfg{}
 )
-type userCfg struct {
+
+type appCfg struct {
 	common.AppCfg
 }
-
 func main() {
 	// 初始化配置、数据库等信息
 	initCfg()
@@ -40,27 +38,31 @@ func main() {
 	// 使用consul注册
 	micReg := consul.NewRegistry(registryOptions)
 
-	// 新建服务
-	service := micro.NewService(
-		micro.Name(cfg.Name),
-		micro.Registry(micReg),
-		micro.Version(cfg.Version),
+	// 创建新服务
+	service := web.NewService(
+		web.Name(cfg.Name),
+		web.Version(cfg.Version),
+		web.Registry(micReg),
+		web.Address(cfg.Addr()),
 	)
 
-	// 服务初始化
-	service.Init(
-		micro.Action(func(c *cli.Context) {
-			// 初始化模型层
-			model.Init()
-			// 初始化handler
-			handler.Init()
-		}),
-	)
+	// 初始化服务
+	if err := service.Init(
+		web.Action(
+			func(c *cli.Context) {
+				// 初始化handler
+				handler.Init()
+			}),
+	); err != nil {
+		log.Fatal(err)
+	}
 
-	// 注册服务
-	s.RegisterUserHandler(service.Server(), new(handler.Service))
+	// 新建订单接口
+	authHandler := http.HandlerFunc(handler.New)
+	service.Handle("/orders/new", handler.AuthWrapper(authHandler))
+	service.HandleFunc("/", handler.Hello)
 
-	// 启动服务
+	// 运行服务
 	if err := service.Run(); err != nil {
 		log.Fatal(err)
 	}

@@ -2,7 +2,7 @@
  * @Description: In User Settings Edit
  * @Author: your name
  * @Date: 2019-08-17 10:36:00
- * @LastEditTime: 2019-08-18 10:12:02
+ * @LastEditTime: 2019-08-19 17:26:45
  * @LastEditors: Please set LastEditors
  */
 package handler
@@ -16,6 +16,7 @@ import (
 	"github.com/micro/go-micro/client"
 	"github.com/micro/go-micro/util/log"
 	auth "github.com/yuwe1/micolearn/microservice/auth/proto/auth"
+	"github.com/yuwe1/micolearn/microservice/plugins/session"
 	us "github.com/yuwe1/micolearn/microservice/user-srv/proto/user"
 )
 
@@ -81,6 +82,11 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		expire := time.Now().Add(30 * time.Minute)
 		cookie := http.Cookie{Name: "remember-me-token", Value: rsp2.Token, Path: "/", Expires: expire, MaxAge: 90000}
 		http.SetCookie(w, &cookie)
+		// 同步到session中
+		sess := session.GetSession(w, r)
+		sess.Values["userId"] = rsp.User.Id
+		sess.Values["userName"] = rsp.User.Name
+		_ = sess.Save(r, w)
 
 	} else {
 		response["success"] = false

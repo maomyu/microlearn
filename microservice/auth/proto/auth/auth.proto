@@ -4,6 +4,7 @@ package mu.micro.book.srv.auth;
 service Service {
     rpc MakeAccessToken (Request) returns (Response);
     rpc DelUserAccessToken (Request) returns (Response);
+    rpc GetCachedAccessToken (Request) returns (Response) ;
 }
 message Error {
     int32 code = 1;
