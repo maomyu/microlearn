@@ -2,7 +2,7 @@
  * @Description: In User Settings Edit
  * @Author: your name
  * @Date: 2019-08-18 08:56:15
- * @LastEditTime: 2019-08-18 09:00:06
+ * @LastEditTime: 2019-08-19 16:46:48
  * @LastEditors: Please set LastEditors
  */
 package handler
@@ -66,5 +66,24 @@ func (s *Service) DelUserAccessToken(ctx context.Context, req *auth.Request, rsp
 		return err
 	}
 
+	return nil
+}
+
+// GetCachedAccessToken 获取缓存的token
+func (s *Service) GetCachedAccessToken(ctx context.Context, req *auth.Request, rsp *auth.Response) error {
+	log.Logf("[GetCachedAccessToken] 获取缓存的token，%d", req.UserId)
+	token, err := accessService.GetCachedAccessToken(&access.Subject{
+		ID: strconv.FormatInt(int64(req.UserId), 10),
+	})
+	if err != nil {
+		rsp.Error = &auth.Error{
+			Detail: err.Error(),
+		}
+
+		log.Logf("[GetCachedAccessToken] 获取缓存的token失败，err：%s", err)
+		return err
+	}
+
+	rsp.Token = token
 	return nil
 }
